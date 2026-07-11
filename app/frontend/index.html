@@ -1,0 +1,971 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Task Tracker</title>
+    <style>
+      :root {
+        color-scheme: light;
+        font-family:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen",
+          "Ubuntu", "Cantarell", sans-serif;
+        --bg: #f8f9fa;
+        --panel: #ffffff;
+        --border: #e0e3e8;
+        --text: #1a1d23;
+        --muted: #6f757e;
+        --accent: #6366f1;
+        --accent-light: #eef2ff;
+        --success: #10b981;
+        --success-light: #d1fae5;
+        --warning: #f59e0b;
+        --warning-light: #fef3c7;
+        --danger: #ef4444;
+        --danger-light: #fee2e2;
+        --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+        --shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        --shadow-lg: 0 10px 28px rgba(0, 0, 0, 0.12);
+        --transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html {
+        scroll-behavior: smooth;
+      }
+
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--text);
+        line-height: 1.6;
+      }
+
+      .app-header {
+        padding: 28px 40px 20px;
+        border-bottom: 1px solid var(--border);
+        background: var(--panel);
+        box-shadow: var(--shadow-sm);
+      }
+
+      .app-header h1 {
+        margin: 0 0 4px;
+        font-size: 2.2rem;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+        background: linear-gradient(135deg, var(--accent) 0%, #8b5cf6 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+      }
+
+      .app-header p {
+        margin: 0;
+        color: var(--muted);
+        font-size: 0.95rem;
+      }
+
+      main {
+        padding: 32px 40px 48px;
+      }
+
+      .board {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(280px, 1fr));
+        gap: 24px;
+        align-items: start;
+      }
+
+      .column {
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 20px;
+        box-shadow: var(--shadow-sm);
+        transition: var(--transition);
+      }
+
+      .column:hover {
+        box-shadow: var(--shadow);
+      }
+
+      .column h2 {
+        margin: 0 0 16px;
+        font-size: 1.05rem;
+        font-weight: 600;
+        letter-spacing: 0.02em;
+        color: var(--text);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .column h2::before {
+        content: "";
+        display: inline-block;
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: currentColor;
+      }
+
+      .column[data-status="ToDo"] h2::before {
+        background: #3b82f6;
+      }
+
+      .column[data-status="InProgress"] h2::before {
+        background: #f59e0b;
+      }
+
+      .column[data-status="Done"] h2::before {
+        background: #10b981;
+      }
+
+      .task-list {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+
+      .card {
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 14px;
+        background: var(--panel);
+        box-shadow: var(--shadow-sm);
+        cursor: grab;
+        transition: var(--transition);
+        position: relative;
+        overflow: hidden;
+      }
+
+      .card::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 3px;
+        background: linear-gradient(90deg, var(--accent), #8b5cf6);
+        opacity: 0;
+        transition: opacity 0.2s;
+      }
+
+      .card:hover {
+        box-shadow: var(--shadow);
+        border-color: var(--accent);
+        transform: translateY(-2px);
+      }
+
+      .card:hover::before {
+        opacity: 1;
+      }
+
+      .card h3 {
+        margin: 0 0 6px;
+        font-size: 0.95rem;
+        font-weight: 600;
+        color: var(--text);
+      }
+
+      .card p {
+        margin: 0 0 10px;
+        color: var(--muted);
+        line-height: 1.5;
+        font-size: 0.875rem;
+      }
+
+      .card-footer {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 8px;
+        font-size: 0.8rem;
+        margin-bottom: 8px;
+      }
+
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 4px 10px;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        letter-spacing: 0.02em;
+      }
+
+      .badge.priority-high {
+        background: var(--danger-light);
+        color: #991b1b;
+      }
+
+      .badge.priority-medium {
+        background: var(--warning-light);
+        color: #92400e;
+      }
+
+      .badge.priority-low {
+        background: var(--success-light);
+        color: #065f46;
+      }
+
+      .edit-btn {
+        border: 1px solid var(--border);
+        background: var(--panel);
+        color: var(--text);
+        border-radius: 8px;
+        padding: 6px 12px;
+        cursor: pointer;
+        font-size: 0.8rem;
+        font-weight: 500;
+        transition: var(--transition);
+      }
+
+      .edit-btn:hover {
+        background: var(--accent-light);
+        border-color: var(--accent);
+        color: var(--accent);
+      }
+
+      .card.dragging {
+        opacity: 0.5;
+        transform: scale(0.95) rotate(-2deg);
+        box-shadow: var(--shadow-lg);
+      }
+
+      .column.drag-over {
+        border-color: var(--accent);
+        background: linear-gradient(
+          135deg,
+          var(--accent-light) 0%,
+          transparent 100%
+        );
+        box-shadow: inset 0 0 12px rgba(99, 102, 241, 0.1);
+      }
+
+      .status-error {
+        margin-bottom: 12px;
+        padding: 12px 14px;
+        border: 1px solid var(--danger-light);
+        border-radius: 12px;
+        background: linear-gradient(135deg, #fef2f2 0%, #fde2e2 100%);
+        color: #991b1b;
+        font-size: 0.9rem;
+        animation: slideDown 0.3s ease-out;
+      }
+
+      @keyframes slideDown {
+        from {
+          opacity: 0;
+          transform: translateY(-10px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      .modal-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(15, 23, 42, 0.55);
+        backdrop-filter: blur(4px);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+        z-index: 1000;
+        animation: fadeIn 0.2s ease-out;
+      }
+
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+        }
+        to {
+          opacity: 1;
+        }
+      }
+
+      .modal {
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        width: min(580px, 100%);
+        padding: 24px;
+        box-shadow: var(--shadow-lg);
+        animation: slideUp 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+
+      @keyframes slideUp {
+        from {
+          opacity: 0;
+          transform: translateY(20px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      .modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+        padding-bottom: 12px;
+        border-bottom: 1px solid var(--border);
+      }
+
+      .modal-header h2 {
+        margin: 0;
+        font-size: 1.3rem;
+        font-weight: 700;
+        letter-spacing: -0.01em;
+      }
+
+      .modal-close {
+        border: none;
+        background: transparent;
+        font-size: 1.5rem;
+        cursor: pointer;
+        color: var(--muted);
+        transition: var(--transition);
+        width: 32px;
+        height: 32px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 8px;
+      }
+
+      .modal-close:hover {
+        background: var(--bg);
+        color: var(--text);
+      }
+
+      .form-grid {
+        display: grid;
+        gap: 16px;
+      }
+
+      .form-field {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+
+      .form-field label {
+        font-weight: 600;
+        font-size: 0.9rem;
+        color: var(--text);
+      }
+
+      .form-field input,
+      .form-field textarea,
+      .form-field select {
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 10px 12px;
+        font: inherit;
+        background: var(--panel);
+        color: var(--text);
+        transition: var(--transition);
+        font-size: 0.95rem;
+      }
+
+      .form-field input:focus,
+      .form-field textarea:focus,
+      .form-field select:focus {
+        outline: none;
+        border-color: var(--accent);
+        box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+      }
+
+      .form-field input:hover:not(:focus),
+      .form-field textarea:hover:not(:focus),
+      .form-field select:hover:not(:focus) {
+        border-color: var(--accent);
+      }
+
+      .form-field textarea {
+        min-height: 100px;
+        resize: vertical;
+        font-family: inherit;
+      }
+
+      .form-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 12px;
+        margin-top: 20px;
+        padding-top: 16px;
+        border-top: 1px solid var(--border);
+      }
+
+      .btn {
+        border: 1px solid var(--border);
+        background: var(--panel);
+        color: var(--text);
+        border-radius: 10px;
+        padding: 10px 16px;
+        cursor: pointer;
+        font-weight: 500;
+        font-size: 0.9rem;
+        transition: var(--transition);
+      }
+
+      .btn:hover {
+        background: var(--bg);
+        border-color: var(--accent);
+      }
+
+      .btn-primary {
+        background: linear-gradient(135deg, var(--accent) 0%, #8b5cf6 100%);
+        color: white;
+        border: none;
+        box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+      }
+
+      .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(99, 102, 241, 0.4);
+      }
+
+      .btn-primary:active {
+        transform: translateY(0);
+      }
+
+      .field-error {
+        color: #991b1b;
+        font-size: 0.85rem;
+        font-weight: 500;
+      }
+
+      .column[data-status="ToDo"] {
+        background: linear-gradient(135deg, #f8fcff 0%, #f0f9ff 100%);
+      }
+
+      .column[data-status="InProgress"] {
+        background: linear-gradient(135deg, #fffbf0 0%, #fef9f3 100%);
+      }
+
+      .column[data-status="Done"] {
+        background: linear-gradient(135deg, #f0fdf4 0%, #f7fdf8 100%);
+      }
+
+      @media (max-width: 1200px) {
+        .board {
+          grid-template-columns: repeat(2, 1fr);
+        }
+      }
+
+      @media (max-width: 640px) {
+        .board {
+          grid-template-columns: 1fr;
+          gap: 16px;
+        }
+
+        .app-header {
+          padding: 20px 24px 16px;
+        }
+
+        .app-header h1 {
+          font-size: 1.8rem;
+        }
+
+        main {
+          padding: 20px 24px 32px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="app-header">
+      <div
+        style="
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          gap: 12px;
+          flex-wrap: wrap;
+        "
+      >
+        <div>
+          <h1>Task Tracker</h1>
+          <p>Keep work moving with a simple Kanban view.</p>
+        </div>
+        <button id="new-task-btn" class="btn btn-primary" type="button">
+          New Task
+        </button>
+      </div>
+    </header>
+
+    <main>
+      <section id="board" class="board" aria-live="polite"></section>
+    </main>
+
+    <script>
+      const API_URL = "http://localhost:8000";
+      const columns = [
+        { status: "ToDo", label: "To Do" },
+        { status: "InProgress", label: "In Progress" },
+        { status: "Done", label: "Done" },
+      ];
+      const PRIORITY_ORDER = { High: 0, Medium: 1, Low: 2 };
+      const ALLOWED_TRANSITIONS = {
+        ToDo: ["InProgress"],
+        InProgress: ["Done", "ToDo"],
+        Done: ["InProgress"],
+      };
+      const board = document.getElementById("board");
+      const newTaskButton = document.getElementById("new-task-btn");
+      let tasks = [];
+      let modalState = null;
+
+      function escapeText(value) {
+        return String(value ?? "")
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/\"/g, "&quot;")
+          .replace(/'/g, "&#39;");
+      }
+
+      function renderBoard(taskList, state = "ready", errorMessage = "") {
+        board.innerHTML = "";
+
+        if (errorMessage) {
+          const errorBox = document.createElement("div");
+          errorBox.className = "status-error";
+          errorBox.textContent = errorMessage;
+          board.appendChild(errorBox);
+        }
+
+        const sortedTasks = [...taskList].sort((a, b) => {
+          const priorityDiff =
+            PRIORITY_ORDER[a.priority] - PRIORITY_ORDER[b.priority];
+          if (priorityDiff !== 0) {
+            return priorityDiff;
+          }
+          return String(a.id).localeCompare(String(b.id));
+        });
+
+        if (state === "loading") {
+          const loadingMessage = document.createElement("div");
+          loadingMessage.style.gridColumn = "1 / -1";
+          loadingMessage.style.marginBottom = "12px";
+          loadingMessage.style.padding = "10px 12px";
+          loadingMessage.style.border = "1px solid #d9e2ef";
+          loadingMessage.style.borderRadius = "8px";
+          loadingMessage.style.background = "#f8fafc";
+          loadingMessage.textContent = "Loading tasks...";
+          board.appendChild(loadingMessage);
+        }
+
+        if (state === "error") {
+          const errorMessageBox = document.createElement("div");
+          errorMessageBox.className = "status-error";
+
+          const message = document.createElement("div");
+          message.textContent = errorMessage || "Unable to load tasks.";
+          errorMessageBox.appendChild(message);
+
+          const retryButton = document.createElement("button");
+          retryButton.type = "button";
+          retryButton.textContent = "Retry";
+          retryButton.style.marginTop = "8px";
+          retryButton.style.border = "1px solid #fecaca";
+          retryButton.style.borderRadius = "6px";
+          retryButton.style.padding = "6px 10px";
+          retryButton.style.cursor = "pointer";
+          retryButton.addEventListener("click", fetchTasks);
+          errorMessageBox.appendChild(retryButton);
+          board.appendChild(errorMessageBox);
+        }
+
+        columns.forEach((column) => {
+          const columnTasks = sortedTasks.filter(
+            (task) => task.status === column.status,
+          );
+
+          const section = document.createElement("section");
+          section.className = "column";
+          section.setAttribute("data-status", column.status);
+          section.addEventListener("dragover", handleDragOver);
+          section.addEventListener("drop", handleDrop);
+          section.addEventListener("dragleave", handleDragLeave);
+
+          const heading = document.createElement("h2");
+          heading.textContent = `${column.label} (${columnTasks.length})`;
+          section.appendChild(heading);
+
+          const taskListElement = document.createElement("div");
+          taskListElement.className = "task-list";
+
+          if (columnTasks.length === 0) {
+            const placeholder = document.createElement("p");
+            placeholder.textContent = "No tasks";
+            placeholder.style.margin = "0";
+            placeholder.style.color = "#6b7280";
+            placeholder.style.fontStyle = "italic";
+            taskListElement.appendChild(placeholder);
+          } else {
+            columnTasks.forEach((task) => {
+              const card = document.createElement("article");
+              card.className = "card";
+              card.draggable = true;
+              card.dataset.taskId = task.id;
+              card.addEventListener("dragstart", handleDragStart);
+              card.addEventListener("dragend", handleDragEnd);
+
+              const title = document.createElement("h3");
+              title.textContent = task.title;
+              card.appendChild(title);
+
+              if (task.description) {
+                const description = document.createElement("p");
+                description.textContent = task.description;
+                card.appendChild(description);
+              }
+
+              const footer = document.createElement("div");
+              footer.className = "card-footer";
+
+              const priorityBadge = document.createElement("span");
+              priorityBadge.className = `badge priority-${String(task.priority).toLowerCase()}`;
+              priorityBadge.textContent = task.priority;
+              footer.appendChild(priorityBadge);
+
+              const assignee = document.createElement("span");
+              assignee.textContent = task.assignee || "Unassigned";
+              footer.appendChild(assignee);
+              card.appendChild(footer);
+
+              const actions = document.createElement("div");
+              actions.className = "card-footer";
+              actions.style.marginTop = "10px";
+              actions.style.justifyContent = "flex-end";
+
+              const editButton = document.createElement("button");
+              editButton.className = "edit-btn";
+              editButton.type = "button";
+              editButton.textContent = "Edit";
+              editButton.addEventListener("click", () => openTaskModal(task));
+              actions.appendChild(editButton);
+              card.appendChild(actions);
+
+              taskListElement.appendChild(card);
+            });
+          }
+
+          section.appendChild(taskListElement);
+          board.appendChild(section);
+        });
+      }
+
+      let draggedTaskId = null;
+      let draggedFromStatus = null;
+      let lastErrorMessage = "";
+
+      function handleDragStart(event) {
+        const card = event.currentTarget;
+        draggedTaskId = card.dataset.taskId;
+        draggedFromStatus = card.closest(".column")?.dataset.status || null;
+        card.classList.add("dragging");
+        event.dataTransfer?.setData("text/plain", draggedTaskId || "");
+      }
+
+      function handleDragEnd(event) {
+        event.currentTarget.classList.remove("dragging");
+        document.querySelectorAll(".column").forEach((column) => {
+          column.classList.remove("drag-over");
+        });
+      }
+
+      function canMoveToStatus(fromStatus, toStatus) {
+        return ALLOWED_TRANSITIONS[fromStatus]?.includes(toStatus) ?? false;
+      }
+
+      function handleDragOver(event) {
+        event.preventDefault();
+        const targetColumn = event.currentTarget;
+        const targetStatus = targetColumn.dataset.status;
+
+        if (
+          draggedTaskId &&
+          draggedFromStatus &&
+          draggedFromStatus !== targetStatus &&
+          canMoveToStatus(draggedFromStatus, targetStatus)
+        ) {
+          targetColumn.classList.add("drag-over");
+          if (event.dataTransfer) {
+            event.dataTransfer.dropEffect = "move";
+          }
+        } else {
+          targetColumn.classList.remove("drag-over");
+          if (event.dataTransfer) {
+            event.dataTransfer.dropEffect = "none";
+          }
+        }
+      }
+
+      function handleDragLeave(event) {
+        if (!event.currentTarget.contains(event.relatedTarget)) {
+          event.currentTarget.classList.remove("drag-over");
+        }
+      }
+
+      async function handleDrop(event) {
+        event.preventDefault();
+        const targetColumn = event.currentTarget;
+        const targetStatus = targetColumn.dataset.status;
+        targetColumn.classList.remove("drag-over");
+
+        if (
+          !draggedTaskId ||
+          !draggedFromStatus ||
+          draggedFromStatus === targetStatus
+        ) {
+          draggedTaskId = null;
+          draggedFromStatus = null;
+          return;
+        }
+
+        const taskToMove = tasks.find((task) => task.id === draggedTaskId);
+        if (!taskToMove) {
+          draggedTaskId = null;
+          draggedFromStatus = null;
+          return;
+        }
+
+        const previousTasks = [...tasks];
+        const previousStatus = taskToMove.status;
+
+        if (!canMoveToStatus(previousStatus, targetStatus)) {
+          const message = `"${taskToMove.title}" cannot move from ${previousStatus} to ${targetStatus}.`;
+          tasks = previousTasks;
+          renderBoard(tasks, tasks.length === 0 ? "empty" : "ready", message);
+          lastErrorMessage = message;
+          draggedTaskId = null;
+          draggedFromStatus = null;
+          return;
+        }
+
+        try {
+          const response = await fetch(`${API_URL}/tasks/${draggedTaskId}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ status: targetStatus }),
+          });
+
+          if (!response.ok) {
+            const errorBody = await response.json().catch(() => ({}));
+            const message =
+              errorBody?.detail ||
+              `Request failed with status ${response.status}`;
+            tasks = previousTasks;
+            renderBoard(tasks, tasks.length === 0 ? "empty" : "ready", message);
+            lastErrorMessage = message;
+            return;
+          }
+
+          const updatedTask = await response.json();
+          tasks = tasks.map((task) =>
+            task.id === updatedTask.id ? updatedTask : task,
+          );
+          renderBoard(tasks, tasks.length === 0 ? "empty" : "ready");
+          lastErrorMessage = "";
+        } catch (error) {
+          tasks = previousTasks;
+          renderBoard(
+            tasks,
+            tasks.length === 0 ? "empty" : "ready",
+            "Network error while updating task.",
+          );
+          lastErrorMessage = "Network error while updating task.";
+        } finally {
+          draggedTaskId = null;
+          draggedFromStatus = null;
+        }
+      }
+
+      function buildModalHtml(mode, task = null) {
+        const isEdit = mode === "edit";
+        const taskId = task?.id || "";
+        const title = task?.title || "";
+        const description = task?.description || "";
+        const status = task?.status || "ToDo";
+        const priority = task?.priority || "Medium";
+        const assignee = task?.assignee || "";
+
+        return `
+          <div class="modal-overlay" id="task-modal-overlay">
+            <div class="modal" role="dialog" aria-modal="true" aria-labelledby="task-modal-title">
+              <div class="modal-header">
+                <h2 id="task-modal-title">${isEdit ? "Edit Task" : "New Task"}</h2>
+                <button class="modal-close" type="button" id="task-modal-close" aria-label="Close">×</button>
+              </div>
+              <form id="task-form" class="form-grid">
+                <input type="hidden" id="task-id" value="${taskId}" />
+                <div class="form-field">
+                  <label for="task-title">Title</label>
+                  <input id="task-title" name="title" value="${escapeText(title)}" />
+                  <div class="field-error" id="title-error"></div>
+                </div>
+                <div class="form-field">
+                  <label for="task-description">Description</label>
+                  <textarea id="task-description" name="description">${escapeText(description)}</textarea>
+                </div>
+                <div class="form-field">
+                  <label for="task-status">Status</label>
+                  <select id="task-status" name="status">
+                    <option value="ToDo" ${status === "ToDo" ? "selected" : ""}>To Do</option>
+                    <option value="InProgress" ${status === "InProgress" ? "selected" : ""}>In Progress</option>
+                    <option value="Done" ${status === "Done" ? "selected" : ""}>Done</option>
+                  </select>
+                </div>
+                <div class="form-field">
+                  <label for="task-priority">Priority</label>
+                  <select id="task-priority" name="priority">
+                    <option value="Low" ${priority === "Low" ? "selected" : ""}>Low</option>
+                    <option value="Medium" ${priority === "Medium" ? "selected" : ""}>Medium</option>
+                    <option value="High" ${priority === "High" ? "selected" : ""}>High</option>
+                  </select>
+                </div>
+                <div class="form-field">
+                  <label for="task-assignee">Assignee</label>
+                  <input id="task-assignee" name="assignee" value="${escapeText(assignee)}" />
+                </div>
+                <div class="form-actions">
+                  <button class="btn" type="button" id="task-cancel-btn">Cancel</button>
+                  <button class="btn btn-primary" type="submit">Save</button>
+                </div>
+              </form>
+            </div>
+          </div>
+        `;
+      }
+
+      function closeTaskModal() {
+        modalState = null;
+        document.getElementById("task-modal-overlay")?.remove();
+      }
+
+      function openTaskModal(task = null) {
+        const mode = task ? "edit" : "create";
+        document.body.insertAdjacentHTML(
+          "beforeend",
+          buildModalHtml(mode, task),
+        );
+        const overlay = document.getElementById("task-modal-overlay");
+        const form = document.getElementById("task-form");
+        const closeButton = document.getElementById("task-modal-close");
+        const cancelButton = document.getElementById("task-cancel-btn");
+
+        const clearErrors = () => {
+          document.getElementById("title-error").textContent = "";
+        };
+
+        const dismissModal = () => {
+          clearErrors();
+          closeTaskModal();
+        };
+
+        overlay.addEventListener("click", (event) => {
+          if (event.target === overlay) {
+            dismissModal();
+          }
+        });
+
+        closeButton.addEventListener("click", dismissModal);
+        cancelButton.addEventListener("click", dismissModal);
+
+        document.addEventListener("keydown", function handleEscape(event) {
+          if (event.key === "Escape") {
+            dismissModal();
+            document.removeEventListener("keydown", handleEscape);
+          }
+        });
+
+        form.addEventListener("submit", async (event) => {
+          event.preventDefault();
+          clearErrors();
+
+          const title = document.getElementById("task-title").value.trim();
+          if (!title) {
+            document.getElementById("title-error").textContent =
+              "Title is required";
+            return;
+          }
+
+          const description = document.getElementById("task-description").value;
+          const status = document.getElementById("task-status").value;
+          const priority = document.getElementById("task-priority").value;
+          const assigneeValue = document
+            .getElementById("task-assignee")
+            .value.trim();
+          const taskId = document.getElementById("task-id").value;
+
+          const payload = {
+            title,
+            description: description || "",
+            status,
+            priority,
+            assignee: assigneeValue || null,
+          };
+
+          try {
+            const response = await fetch(
+              taskId ? `${API_URL}/tasks/${taskId}` : `${API_URL}/tasks`,
+              {
+                method: taskId ? "PATCH" : "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload),
+              },
+            );
+
+            if (response.ok) {
+              dismissModal();
+              await fetchTasks();
+              return;
+            }
+
+            const errorBody = await response.json().catch(() => ({}));
+            const message = errorBody?.detail || "Unable to save task.";
+            document.getElementById("title-error").textContent = message;
+          } catch (error) {
+            document.getElementById("title-error").textContent =
+              "Network error while saving task.";
+          }
+        });
+      }
+
+      newTaskButton.addEventListener("click", () => openTaskModal());
+
+      async function fetchTasks() {
+        renderBoard([], "loading");
+
+        try {
+          const response = await fetch(`${API_URL}/tasks`);
+          if (!response.ok) {
+            throw new Error(`Request failed with status ${response.status}`);
+          }
+
+          const data = await response.json();
+          tasks = Array.isArray(data) ? data : [];
+          renderBoard(tasks, tasks.length === 0 ? "empty" : "ready");
+        } catch (error) {
+          console.error("Failed to load tasks:", error);
+          tasks = [];
+          renderBoard([], "error", error.message);
+        }
+      }
+
+      fetchTasks();
+    </script>
+  </body>
+</html>
