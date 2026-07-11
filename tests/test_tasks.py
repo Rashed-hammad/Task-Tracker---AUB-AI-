@@ -145,6 +145,27 @@ def test_patch_partial_update_keeps_other_fields(client):
     assert data["priority"] == "High"
 
 
+def test_patch_task_with_invalid_priority_value_returns_422(client):
+    create = client.post(
+        "/tasks",
+        json={
+            "title": "Task",
+            "priority": "High",
+        },
+    )
+
+    task = create.json()
+
+    r = client.patch(
+        f"/tasks/{task['id']}",
+        json={"priority": "Urgent"},
+    )
+
+    assert r.status_code == 422
+    assert "detail" in r.json()
+    assert "priority" in str(r.json()["detail"])
+
+
 def test_patch_not_found_returns_404(client):
     r = client.patch(
         "/tasks/not-found",
