@@ -563,6 +563,17 @@
         color: var(--muted);
       }
 
+      .empty-state-alert {
+        grid-column: 1 / -1;
+        padding: 14px 16px;
+        border: 1px solid var(--warning-light);
+        border-radius: 12px;
+        background: linear-gradient(135deg, #fff7ed 0%, #fffbeb 100%);
+        color: #92400e;
+        font-weight: 600;
+        box-shadow: var(--shadow-sm);
+      }
+
       @media (max-width: 1200px) {
         .board {
           grid-template-columns: repeat(2, 1fr);
@@ -715,6 +726,10 @@
       function renderBoard(taskList, state = "ready", errorMessage = "") {
         board.innerHTML = "";
 
+        const hasActiveFilters = Object.values(getActiveFilters()).some(
+          (value) => String(value).trim() !== "",
+        );
+
         if (state === "loading") {
           const loadingBox = document.createElement("div");
           loadingBox.className = "board-status";
@@ -727,6 +742,15 @@
           errorBox.className = "status-error";
           errorBox.textContent = errorMessage || "Unable to load tasks.";
           board.appendChild(errorBox);
+        }
+
+        if (state === "empty" && taskList.length === 0) {
+          const emptyState = document.createElement("div");
+          emptyState.className = "empty-state-alert";
+          emptyState.textContent = hasActiveFilters
+            ? "No tasks match your current filters. Try changing the search or clearing the filters."
+            : "No tasks yet. Create your first task to get started.";
+          board.appendChild(emptyState);
         }
 
         const sortedTasks = [...taskList].sort((a, b) => {
