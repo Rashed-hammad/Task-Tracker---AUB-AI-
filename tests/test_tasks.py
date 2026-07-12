@@ -102,6 +102,108 @@ def test_list_tasks_filter_by_priority_returns_only_matches(client):
     assert data[0]["priority"] == "High"
 
 
+def test_list_tasks_filter_by_text_status_priority_and_assignee_returns_matches(client):
+    client.post(
+        "/tasks",
+        json={
+            "title": "Plan launch",
+            "description": "Prepare rollout",
+            "status": "ToDo",
+            "priority": "High",
+            "assignee": "Rashed",
+        },
+    )
+
+    client.post(
+        "/tasks",
+        json={
+            "title": "Draft summary",
+            "description": "Review notes",
+            "status": "InProgress",
+            "priority": "High",
+            "assignee": "Mina",
+        },
+    )
+
+    client.post(
+        "/tasks",
+        json={
+            "title": "Ship release",
+            "description": "Publish package",
+            "status": "Done",
+            "priority": "Low",
+            "assignee": "Rashed",
+        },
+    )
+
+    r = client.get(
+        "/tasks",
+        params={
+            "q": "launch",
+            "status": "ToDo",
+            "priority": "High",
+            "assignee": "Rashed",
+        },
+    )
+
+    assert r.status_code == 200
+    assert len(r.json()) == 1
+    assert r.json()[0]["title"] == "Plan launch"
+    assert r.json()[0]["assignee"] == "Rashed"
+
+
+def test_list_tasks_search_title_and_description_returns_matches(client):
+    client.post(
+        "/tasks",
+        json={
+            "title": "Launch plan",
+            "description": "Gather feedback",
+            "status": "ToDo",
+            "priority": "Medium",
+        },
+    )
+
+    client.post(
+        "/tasks",
+        json={
+            "title": "Write notes",
+            "description": "Review launch checklist",
+            "status": "InProgress",
+            "priority": "Low",
+        },
+    )
+
+    r = client.get("/tasks", params={"q": "review"})
+
+    assert r.status_code == 200
+    assert len(r.json()) == 1
+    assert r.json()[0]["title"] == "Write notes"
+    assert r.json()[0]["description"] == "Review launch checklist"
+
+
+def test_list_tasks_no_match_returns_200_and_empty_list(client):
+    client.post(
+        "/tasks",
+        json={
+            "title": "Existing task",
+            "status": "ToDo",
+            "priority": "Medium",
+        },
+    )
+
+    r = client.get("/tasks", params={"q": "no-such-task"})
+
+    assert r.status_code == 200
+    assert r.json() == []
+
+
+def test_list_tasks_invalid_status_filter_returns_422(client):
+    r = client.get("/tasks", params={"status": "Unknown"})
+
+    assert r.status_code == 422
+    assert "detail" in r.json()
+
+
 def test_get_task_by_id_returns_task(client, created_task):
     task_id = created_task["id"]
 

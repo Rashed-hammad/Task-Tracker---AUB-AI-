@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from typing import Optional
 from uuid import uuid4
 
@@ -16,6 +16,7 @@ def add_task(payload: TaskCreate) -> TaskResponse:
         status=payload.status,
         priority=payload.priority,
         assignee=payload.assignee,
+        due_date=payload.due_date,
         created_at=now,
         updated_at=now,
     )
@@ -26,12 +27,48 @@ def add_task(payload: TaskCreate) -> TaskResponse:
 def get_all_tasks(
     status: Optional[TaskStatus] = None,
     priority: Optional[TaskPriority] = None,
+    assignee: Optional[str] = None,
+    q: Optional[str] = None,
+    overdue: Optional[bool] = None,
 ) -> list[TaskResponse]:
     tasks = list(_tasks.values())
+
     if status is not None:
         tasks = [t for t in tasks if t.status == status]
+
     if priority is not None:
         tasks = [t for t in tasks if t.priority == priority]
+
+    if assignee is not None:
+        assignee_filter = assignee.strip().lower()
+        if assignee_filter:
+            tasks = [
+                t for t in tasks if (t.assignee or "").lower() == assignee_filter
+            ]
+
+    if q is not None:
+        search_term = q.strip().lower()
+        if search_term:
+            tasks = [
+                t
+                for t in tasks
+                if search_term in " ".join(
+                    [
+                        t.title.lower(),
+                        t.description.lower(),
+                        (t.assignee or "").lower(),
+                    ]
+                )
+            ]
+
+    if overdue is not None:
+        today = date.today()
+        tasks = [
+            t
+            for t in tasks
+            if (t.due_date is not None and t.due_date < today) is overdue
+        ]
+
     return tasks
 
 
