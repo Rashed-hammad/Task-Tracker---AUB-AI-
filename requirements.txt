@@ -2,4 +2,4 @@ fastapi[standard]
 uvicorn[standard]
 pydantic
 python-dotenv
-
+pytest
