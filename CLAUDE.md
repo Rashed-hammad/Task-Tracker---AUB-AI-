@@ -11,6 +11,7 @@ server restarts (ADR-001, see `docs/mini-adr.md`).
 ## Commands
 
 Setup:
+
 ```bash
 python3 -m venv venv
 source venv/bin/activate
@@ -19,19 +20,24 @@ cp .env.example .env
 ```
 
 Run the server:
+
 ```bash
 uvicorn app.main:app --reload --port 8000
 ```
+
 API at http://localhost:8000, interactive docs at http://localhost:8000/docs.
 
 Run tests:
+
 ```bash
 pytest
 pytest tests/test_tasks.py::test_create_task_valid_returns_201_with_full_body  # single test
 ```
+
 `pytest.ini` sets `pythonpath = .`, so tests import `app` directly — no package install needed.
 
 Health check:
+
 ```bash
 curl -X GET http://localhost:8000/health
 ```
