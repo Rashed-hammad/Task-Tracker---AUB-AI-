@@ -1,0 +1,32 @@
+# Version control
+.git
+.gitignore
+.github
+
+# Secrets / env
+.env
+
+# Python virtual environments
+venv
+.venv
+env
+
+# Python bytecode/cache
+__pycache__
+**/__pycache__/
+*.py[cod]
+.pytest_cache
+
+# Node (if present)
+node_modules
+
+# Build artifacts
+dist
+build
+*.egg-info
+
+# OS / editor files
+.DS_Store
+Thumbs.db
+.vscode
+.idea
