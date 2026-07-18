@@ -8,6 +8,16 @@ _tasks: dict[str, TaskResponse] = {}
 
 
 def add_task(payload: TaskCreate) -> TaskResponse:
+    """Create and persist a new task in the in-memory store.
+
+    Args:
+        payload (TaskCreate): Validated task creation data.
+
+    Returns:
+        TaskResponse: The newly created task, with a generated UUID
+            ``id`` and ``created_at``/``updated_at`` both set to the
+            current UTC time.
+    """
     now = datetime.now(timezone.utc)
     task = TaskResponse(
         id=str(uuid4()),
@@ -31,6 +41,29 @@ def get_all_tasks(
     q: Optional[str] = None,
     overdue: Optional[bool] = None,
 ) -> list[TaskResponse]:
+    """Return tasks from the in-memory store, optionally filtered.
+
+    Filters are applied in sequence and combined with AND: ``status``
+    (exact match), ``priority`` (exact match), ``assignee``
+    (case-insensitive exact match; a blank/whitespace-only value is
+    ignored), ``q`` (case-insensitive substring search across title,
+    description, and assignee; a blank/whitespace-only value is
+    ignored), and ``overdue`` (``True`` keeps tasks whose ``due_date``
+    is set and before today; ``False`` keeps tasks whose ``due_date``
+    is unset or not before today).
+
+    Args:
+        status (Optional[TaskStatus]): Exact-match status filter.
+        priority (Optional[TaskPriority]): Exact-match priority filter.
+        assignee (Optional[str]): Case-insensitive exact-match
+            assignee filter.
+        q (Optional[str]): Case-insensitive free-text search term.
+        overdue (Optional[bool]): Overdue filter, see above.
+
+    Returns:
+        list[TaskResponse]: Tasks matching all supplied filters (all
+            tasks if none are given).
+    """
     tasks = list(_tasks.values())
 
     if status is not None:
@@ -73,10 +106,34 @@ def get_all_tasks(
 
 
 def get_task_by_id(task_id: str) -> Optional[TaskResponse]:
+    """Look up a single task by id.
+
+    Args:
+        task_id (str): The task's unique id.
+
+    Returns:
+        Optional[TaskResponse]: The matching task, or ``None`` if no
+            task exists with the given id.
+    """
     return _tasks.get(task_id)
 
 
 def update_task(task_id: str, payload: TaskUpdate) -> Optional[TaskResponse]:
+    """Apply a partial update to an existing task.
+
+    Only fields explicitly set on ``payload`` are applied
+    (``model_dump(exclude_unset=True)``); if no fields were set, the
+    task is returned unchanged. ``updated_at`` is refreshed to the
+    current UTC time whenever at least one field is applied.
+
+    Args:
+        task_id (str): The task's unique id.
+        payload (TaskUpdate): Fields to update.
+
+    Returns:
+        Optional[TaskResponse]: The updated task, or ``None`` if no
+            task exists with the given id.
+    """
     task = _tasks.get(task_id)
     if task is None:
         return None
@@ -93,6 +150,15 @@ def update_task(task_id: str, payload: TaskUpdate) -> Optional[TaskResponse]:
 
 
 def delete_task(task_id: str) -> bool:
+    """Delete a task by id.
+
+    Args:
+        task_id (str): The task's unique id.
+
+    Returns:
+        bool: ``True`` if a task was deleted, ``False`` if no task
+            existed with the given id.
+    """
     if task_id not in _tasks:
         return False
     del _tasks[task_id]
